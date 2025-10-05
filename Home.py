@@ -208,7 +208,7 @@ def main():
     with col2:
         st.markdown('<div style="text-align: center;"><span class="ai-badge">AI</span></div>', unsafe_allow_html=True)
         st.markdown('<div class="card-icon">🎯</div>', unsafe_allow_html=True)
-        st.markdown('<div class="card-title">Retention Analytics</div>', unsafe_allow_html=True)
+        st.markdown('<div class="card-title">Retention Risk Prediction</div>', unsafe_allow_html=True)
         st.text(' ')
         st.markdown('<div class="card-description">AI-enabled retention risk assessment with personalized HRBP and Manager action items for targeted interventions</div>', unsafe_allow_html=True)
         
