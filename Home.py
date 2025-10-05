@@ -174,7 +174,7 @@ def main():
     with st.sidebar:
         st.text(" ")
         st.text(" ")
-        st.image("BI-Logo.png", width=100)
+        st.image("BI-Logo.png", width=125)
     
     # Main Title (centered)
     st.markdown('<h1 style="text-align: center; font-size: 33px; font-weight: bold; color: #1f2937; ">TalentLens AI</h1>', unsafe_allow_html=True)
