@@ -189,12 +189,12 @@ def main():
         st.markdown('<div class="card-icon">📊</div>', unsafe_allow_html=True)
         st.markdown('<div class="card-title">Employee KPI Dashboard</div>', unsafe_allow_html=True)
         st.text(' ')
-        st.markdown('<div class="card-description">View organizational metrics, retention risk distribution, and employee profile data from SAP SuccessFactors across departments</div>', unsafe_allow_html=True)
+        st.markdown('<div class="card-description">Analyze key metrics, retention risk distribution and employee profile data from SAP SuccessFactors across departments</div>', unsafe_allow_html=True)
         
         # Center the button
         btn_col1, btn_col2, btn_col3 = st.columns([0.2, 2, 0.2])
         with btn_col2:
-            if st.button("View KPI Metrics →", key="kpi_btn", use_container_width=True):
+            if st.button("View KPI Metrics", key="kpi_btn", use_container_width=True):
                 st.switch_page("pages/1_Employee_KPI_Dashboard.py")
     
     with col2:
@@ -207,7 +207,7 @@ def main():
         # Center the button
         btn_col1, btn_col2, btn_col3 = st.columns([0.2, 2, 0.2])
         with btn_col2:
-            if st.button("Analyze Retention Risk →", key="retention_btn", use_container_width=True):
+            if st.button("Analyze Retention Risk", key="retention_btn", use_container_width=True):
                 st.switch_page("pages/2_AI_Retention_Analytics.py")
     
     with col3:
@@ -218,9 +218,9 @@ def main():
         st.markdown('<div class="card-description">AI-driven leadership assessment with personalized HRBP and Manager action items for talent development</div>', unsafe_allow_html=True)
         
         # Center the button
-        btn_col1, btn_col2, btn_col3 = st.columns([0.1, 2, 0.1])
+        btn_col1, btn_col2, btn_col3 = st.columns([0.2, 2, 0.2])
         with btn_col2:
-            if st.button("Assess Leadership Potential →", key="leadership_btn", use_container_width=True):
+            if st.button("Assess Leadership Potential", key="leadership_btn", use_container_width=True):
                 st.switch_page("pages/3_AI_Leadership_Prediction.py")
 
 if __name__ == "__main__":
