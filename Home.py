@@ -181,7 +181,7 @@ def main():
     st.markdown('''
 <h1 style="
     text-align: center; 
-    font-size: 42px; 
+    font-size: 33px; 
     font-weight: 600; 
     color: #1f2937; 
     font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
