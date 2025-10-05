@@ -218,7 +218,7 @@ def main():
         st.markdown('<div class="card-description">AI-driven leadership assessment with personalized HRBP and Manager action items for talent development</div>', unsafe_allow_html=True)
         
         # Center the button
-        btn_col1, btn_col2, btn_col3 = st.columns([0.2, 2, 0.2])
+        btn_col1, btn_col2, btn_col3 = st.columns([0.1, 2, 0.1])
         with btn_col2:
             if st.button("Assess Leadership Potential →", key="leadership_btn", use_container_width=True):
                 st.switch_page("pages/3_AI_Leadership_Prediction.py")
