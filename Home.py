@@ -185,7 +185,6 @@ def main():
     font-weight: 600; 
     color: #1f2937; 
     font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    margin-bottom: 10px;
 ">TalentLens AI</h1>
 ''', unsafe_allow_html=True)
     st.markdown("---")
