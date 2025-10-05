@@ -177,8 +177,17 @@ def main():
         st.image("BI-Logo.png", width=125)
     
     # Main Title (centered)
-    st.markdown('<h1 style="text-align: center; font-size: 33px; font-weight: bold; color: #1f2937; ">TalentLens AI</h1>', unsafe_allow_html=True)
-    
+    #st.markdown('<h1 style="text-align: center; font-size: 33px; font-weight: bold; color: #1f2937; ">TalentLens AI</h1>', unsafe_allow_html=True)
+    st.markdown('''
+<h1 style="
+    text-align: center; 
+    font-size: 42px; 
+    font-weight: 600; 
+    color: #1f2937; 
+    font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin-bottom: 10px;
+">TalentLens AI</h1>
+''', unsafe_allow_html=True)
     st.markdown("---")
     
     # Navigation Cards
