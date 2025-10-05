@@ -174,7 +174,7 @@ def main():
     with st.sidebar:
         st.text(" ")
         st.text(" ")
-        st.image("BI-Logo.png", width=125)
+        st.image("BI-Logo.png", width=100)
     
     # Main Title (centered)
     st.markdown('<h1 style="text-align: center; font-size: 33px; font-weight: bold; color: #1f2937; ">TalentLens AI</h1>', unsafe_allow_html=True)
@@ -185,46 +185,43 @@ def main():
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        #st.markdown('<div class="dashboard-card standard-card">', unsafe_allow_html=True)
         st.markdown('<div style="text-align: center;"><span class="standard-badge">ANALYTICS</span></div>', unsafe_allow_html=True)
         st.markdown('<div class="card-icon">📊</div>', unsafe_allow_html=True)
         st.markdown('<div class="card-title">Employee KPI Dashboard</div>', unsafe_allow_html=True)
-        #st.markdown('<div class="card-subtitle">(SAP SuccessFactors)</div>', unsafe_allow_html=True)
         st.text(' ')
         st.markdown('<div class="card-description">View organizational metrics, retention risk distribution, and employee profile data from SAP SuccessFactors across departments</div>', unsafe_allow_html=True)
         
-        if st.button("View KPI Metrics →", key="kpi_btn"):
-            st.switch_page("pages/1_Employee_KPI_Dashboard.py")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
+        # Center the button
+        btn_col1, btn_col2, btn_col3 = st.columns([1, 2, 1])
+        with btn_col2:
+            if st.button("View KPI Metrics →", key="kpi_btn", use_container_width=True):
+                st.switch_page("pages/1_Employee_KPI_Dashboard.py")
     
     with col2:
-        #st.markdown('<div class="dashboard-card ai-card">', unsafe_allow_html=True)
         st.markdown('<div style="text-align: center;"><span class="ai-badge">AI</span></div>', unsafe_allow_html=True)
         st.markdown('<div class="card-icon">🎯</div>', unsafe_allow_html=True)
         st.markdown('<div class="card-title">Retention Analytics</div>', unsafe_allow_html=True)
-        #st.markdown('<div class="card-subtitle">""</div>', unsafe_allow_html=True)
         st.text(' ')
         st.markdown('<div class="card-description">AI-enabled retention risk assessment with personalized HRBP and Manager action items for targeted interventions</div>', unsafe_allow_html=True)
         
-        if st.button("Analyze Retention Risk →", key="retention_btn"):
-            st.switch_page("pages/2_AI_Retention_Analytics.py")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
+        # Center the button
+        btn_col1, btn_col2, btn_col3 = st.columns([1, 2, 1])
+        with btn_col2:
+            if st.button("Analyze Retention Risk →", key="retention_btn", use_container_width=True):
+                st.switch_page("pages/2_AI_Retention_Analytics.py")
     
     with col3:
-        #st.markdown('<div class="dashboard-card ai-card">', unsafe_allow_html=True)
         st.markdown('<div style="text-align: center;"><span class="ai-badge">AI</span></div>', unsafe_allow_html=True)
         st.markdown('<div class="card-icon">👥</div>', unsafe_allow_html=True)
         st.markdown('<div class="card-title">Leadership Prediction</div>', unsafe_allow_html=True)
-        #st.markdown('<div class="card-subtitle">""</div>', unsafe_allow_html=True)
         st.text(' ')
         st.markdown('<div class="card-description">AI-driven leadership assessment with personalized HRBP and Manager action items for talent development</div>', unsafe_allow_html=True)
         
-        if st.button("Assess Leadership Potential →", key="leadership_btn"):
-            st.switch_page("pages/3_AI_Leadership_Prediction.py")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
+        # Center the button
+        btn_col1, btn_col2, btn_col3 = st.columns([1, 2, 1])
+        with btn_col2:
+            if st.button("Assess Leadership Potential →", key="leadership_btn", use_container_width=True):
+                st.switch_page("pages/3_AI_Leadership_Prediction.py")
 
 if __name__ == "__main__":
     main()
