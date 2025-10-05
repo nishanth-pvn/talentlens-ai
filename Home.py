@@ -192,7 +192,7 @@ def main():
         st.markdown('<div class="card-description">View organizational metrics, retention risk distribution, and employee profile data from SAP SuccessFactors across departments</div>', unsafe_allow_html=True)
         
         # Center the button
-        btn_col1, btn_col2, btn_col3 = st.columns([1, 2, 1])
+        btn_col1, btn_col2, btn_col3 = st.columns([0.5, 2, 0.5])
         with btn_col2:
             if st.button("View KPI Metrics →", key="kpi_btn", use_container_width=True):
                 st.switch_page("pages/1_Employee_KPI_Dashboard.py")
