@@ -1,8 +1,9 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import requests
 import json
+import requests
+import plotly.graph_objects as go
 
 # Set page configuration
 st.set_page_config(
@@ -39,18 +40,6 @@ st.markdown("""
     .profile-value {
         width: 50%;
     }
-    .low-potential {
-        color: #e74c3c;
-        font-weight: bold;
-    }
-    .medium-potential {
-        color: #f39c12;
-        font-weight: bold;
-    }
-    .high-potential {
-        color: #27ae60;
-        font-weight: bold;
-    }
     .stApp {
         background-color: white !important;
     }
@@ -59,49 +48,56 @@ st.markdown("""
         color: #666;
         margin-bottom: 5px;
     }
-    .ai-potential-low {
-        color: #e74c3c;
-        font-weight: bold;
-        background: rgba(231, 76, 60, 0.1);
-        padding: 4px 8px;
-        border-radius: 6px;
-        border: 1px solid rgba(231, 76, 60, 0.3);
-    }
-    .ai-potential-medium {
-        color: #f39c12;
-        font-weight: bold;
-        background: rgba(243, 156, 18, 0.1);
-        padding: 4px 8px;
-        border-radius: 6px;
-        border: 1px solid rgba(243, 156, 18, 0.3);
-    }
-    .ai-potential-high {
-        color: #00E47C;
-        font-weight: bold;
-        background: rgba(0, 228, 124, 0.1);
-        padding: 4px 8px;
-        border-radius: 6px;
-        border: 1px solid rgba(0, 228, 124, 0.3);
-    }
-    .ai-matrix-position-box {
+    .gauge-container {
         background: linear-gradient(145deg, #f0fffb 0%, #e6fffa 100%);
         border: 2px solid #7df3d1;
         border-radius: 10px;
-        padding: 16px;
+        padding: 12px;
         margin: 15px 0;
-        box-shadow: 0 3px 6px rgba(0, 228, 124, 0.1);
+        box-shadow: 0 2px 6px rgba(0, 228, 124, 0.1);
     }
-    .ai-matrix-position-title {
+    .gauge-title {
+        text-align: center;
+        font-size: 14px;
         font-weight: bold;
         color: #08312A;
-        margin-bottom: 8px;
-        font-size: 15px;
+        margin-bottom: 5px;
     }
-    .ai-matrix-position-desc {
-        color: #0a4a3a;
-        font-style: italic;
-        line-height: 1.5;
+    .gauge-legend {
+        text-align: center;
+        font-size: 11px;
+        color: #6b7280;
+        margin-top: 5px;
+        padding: 5px;
+    }
+    .legend-item {
+        display: inline-block;
+        margin: 0 8px;
+    }
+    .legend-color {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 2px;
+        margin-right: 4px;
+        vertical-align: middle;
+    }
+    .prediction-text {
+        margin-top: 10px;
+        padding: 10px;
+        background: white;
+        border-radius: 6px;
+        border-left: 4px solid #e5e7eb;
+    }
+    .prediction-label {
+        font-weight: 600;
         font-size: 14px;
+        margin-bottom: 5px;
+    }
+    .prediction-reasoning {
+        font-size: 13px;
+        color: #4b5563;
+        line-height: 1.5;
     }
     .hrbp-actions-section {
         background: white;
@@ -109,43 +105,15 @@ st.markdown("""
         border-radius: 12px;
         padding: 20px;
         margin: 20px 0;
-        position: relative;
-        box-shadow: 
-            0 4px 6px rgba(0, 228, 124, 0.15),
-            0 1px 3px rgba(0, 228, 124, 0.1);
-        background: linear-gradient(145deg, #f8fffe 0%, #f0fffb 100%);
-    }
-    .hrbp-actions-section::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, #00E47C, #08312A, #00E47C);
-        border-radius: 10px 10px 0 0;
-        animation: ai-pulse 3s ease-in-out infinite;
-    }
-    @keyframes ai-pulse {
-        0%, 100% { opacity: 0.8; }
-        50% { opacity: 1; }
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
     .hrbp-actions-header {
-        color: #08312A;
+        color: #1f2937;
         font-weight: bold;
         font-size: 16px;
         margin-bottom: 15px;
-        display: flex;
-        align-items: center;
         border-bottom: 2px solid #e5e7eb;
         padding-bottom: 8px;
-    }
-    .hrbp-actions-content {
-        background: rgba(0, 228, 124, 0.02);
-        border-radius: 8px;
-        padding: 15px;
-        margin: 10px 0;
-        border-left: 4px solid #00E47C;
     }
     .manager-actions-section {
         background: white;
@@ -153,39 +121,15 @@ st.markdown("""
         border-radius: 12px;
         padding: 20px;
         margin: 20px 0;
-        position: relative;
-        box-shadow: 
-            0 4px 6px rgba(0, 228, 124, 0.15),
-            0 1px 3px rgba(0, 228, 124, 0.1);
-        background: linear-gradient(145deg, #f8fffe 0%, #f0fffb 100%);
-    }
-    .manager-actions-section::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, #00E47C, #08312A, #00E47C);
-        border-radius: 10px 10px 0 0;
-        animation: ai-pulse 3s ease-in-out infinite;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
     .manager-actions-header {
-        color: #08312A;
+        color: #1f2937;
         font-weight: bold;
         font-size: 16px;
         margin-bottom: 15px;
-        display: flex;
-        align-items: center;
         border-bottom: 2px solid #e5e7eb;
         padding-bottom: 8px;
-    }
-    .manager-actions-content {
-        background: rgba(0, 228, 124, 0.02);
-        border-radius: 8px;
-        padding: 15px;
-        margin: 10px 0;
-        border-left: 4px solid #00E47C;
     }
     .stButton > button {
         background: linear-gradient(135deg, #00E47C 0%, #08312A 100%) !important;
@@ -306,26 +250,25 @@ def load_data():
     
     return data
 
-# API Configuration
-try:
-    API_CONFIG = {
-        'client_id': st.secrets["client_id"],
-        'client_secret': st.secrets["client_secret"],
-        'model_name': st.secrets["model_name"],
-        'token_url': st.secrets["token_url"],
-        'api_url': st.secrets["api_url"],
-        'temperature': float(st.secrets["temperature"]),
-        'max_tokens': int(st.secrets["max_tokens"]),
-        'completions_path': st.secrets["completions_path"]
-    }
-except KeyError as e:
-    st.error(f"Missing secret configuration: {e}")
-    st.stop()
+# ========================================
+# BI Internal API Configuration
+# ========================================
 
-@st.cache_resource
-def get_api_token():
+API_CONFIG = {
+    'client_id': '074c933c-112f-4acf-a6a5-3199e4c78eea',
+    'client_secret': 'ff7c6a75-1336-4594-b74e-f26065b87d4e',
+    'model_name': 'gpt-4.1',
+    'token_url': 'https://api-gw.boehringer-ingelheim.com:443/api/oauth/token',
+    'api_url': 'https://api-gw.boehringer-ingelheim.com:443/apollo/llm-api/',
+    'temperature': 0.2,
+    'max_tokens': 1000,
+    'completions_path': 'chat/completions'
+}
+
+def get_access_token():
+    """Get OAuth2 access token for BI API"""
     try:
-        token_response = requests.post(
+        response = requests.post(
             API_CONFIG['token_url'],
             data={
                 'grant_type': 'client_credentials',
@@ -334,40 +277,55 @@ def get_api_token():
             },
             headers={'Content-Type': 'application/x-www-form-urlencoded'}
         )
-        token_response.raise_for_status()
-        return token_response.json()['access_token']
+        response.raise_for_status()
+        return response.json()['access_token']
     except Exception as e:
-        st.error(f"Failed to get API token: {str(e)}")
+        st.error(f"Failed to get access token: {str(e)}")
         return None
 
 def call_llm_api(prompt, max_retries=3):
-    token = get_api_token()
-    if not token:
-        return "Error: Unable to authenticate with API"
-    
-    url = f"{API_CONFIG['api_url']}{API_CONFIG['completions_path']}"
-    headers = {
-        'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/json'
-    }
-    
-    payload = {
-        'model': API_CONFIG['model_name'],
-        'messages': [{'role': 'user', 'content': prompt}],
-        'temperature': API_CONFIG['temperature'],
-        'max_tokens': API_CONFIG['max_tokens']
-    }
-    
+    """Call BI Internal LLM API (GPT-4o)"""
     for attempt in range(max_retries):
         try:
-            response = requests.post(url, json=payload, headers=headers, timeout=30)
+            # Get access token
+            access_token = get_access_token()
+            if not access_token:
+                return "Error: Failed to authenticate with BI API"
+            
+            # Prepare request
+            url = f"{API_CONFIG['api_url']}{API_CONFIG['completions_path']}"
+            headers = {
+                'Authorization': f'Bearer {access_token}',
+                'Content-Type': 'application/json'
+            }
+            
+            payload = {
+                'model': API_CONFIG['model_name'],
+                'messages': [
+                    {
+                        'role': 'user',
+                        'content': prompt
+                    }
+                ],
+                'temperature': API_CONFIG['temperature'],
+                'max_tokens': API_CONFIG['max_tokens']
+            }
+            
+            # Make API call
+            response = requests.post(url, json=payload, headers=headers)
             response.raise_for_status()
             
+            # Parse response
             response_data = response.json()
             if 'choices' in response_data and len(response_data['choices']) > 0:
                 return response_data['choices'][0]['message']['content']
             else:
                 return "Error: Unexpected API response format"
+                
+        except requests.exceptions.RequestException as e:
+            if attempt == max_retries - 1:
+                return f"Error: {str(e)}"
+            continue
         except Exception as e:
             if attempt == max_retries - 1:
                 return f"Error: {str(e)}"
@@ -375,33 +333,8 @@ def call_llm_api(prompt, max_retries=3):
     
     return "Error: Failed to get response from API"
 
-def calculate_leadership_potential(employee):
-    leadership_scores = []
-    
-    core_metrics = ['Leadership_Score', 'EQ', 'Strategic_Vision', 'Stakeholder_Management']
-    for metric in core_metrics:
-        if metric in employee.index and pd.notna(employee[metric]):
-            leadership_scores.append(float(employee[metric]) * 1.2)
-    
-    feedback_metrics = ['Decide_Act_Speed', 'Deliver_Win', 'Communicate_Candor', 
-                       'Collaborate_Purpose', 'Innovate_Change']
-    for metric in feedback_metrics:
-        if metric in employee.index and pd.notna(employee[metric]):
-            leadership_scores.append(float(employee[metric]))
-    
-    additional_metrics = ['Adaptability', 'Coaching_Skill']
-    for metric in additional_metrics:
-        if metric in employee.index and pd.notna(employee[metric]):
-            leadership_scores.append(float(employee[metric]) * 0.8)
-    
-    if leadership_scores:
-        avg_score = sum(leadership_scores) / len(leadership_scores)
-        return min(avg_score, 5.0)
-    
-    return 0.0
-
 def get_ai_leadership_prediction(employee):
-    leadership_score = calculate_leadership_potential(employee)
+    """Get AI holistic leadership prediction based on company framework"""
     
     def safe_get_numeric(key, default=0):
         if key in employee.index and pd.notna(employee[key]):
@@ -421,10 +354,19 @@ def get_ai_leadership_prediction(employee):
         "department": safe_get_string('Department'),
         "designation": safe_get_string('Designation'),
         "performance_rating": safe_get_numeric('AveragePerformanceRating'),
+        "months_since_promotion": safe_get_numeric('MonthsSincePromotion'),
+        "monthly_income": safe_get_numeric('MonthlyIncome'),
         "people_managed": safe_get_numeric('People_Managed'),
         "years_working": safe_get_numeric('Years_Working'),
+        "work_location": safe_get_string('WorkLocation'),
         "education": safe_get_string('Education'),
-        "leadership_score": safe_get_numeric('Leadership_Score'),
+        "english_proficiency": safe_get_string('English_Proficiency'),
+        "mobility": safe_get_string('Mobility'),
+        "training_hours": safe_get_numeric('TrainingHours'),
+        "project_count": safe_get_numeric('ProjectCount'),
+        "mag_current": safe_get_string('MAG_Current_Year'),
+        "mag_last": safe_get_string('MAG_Last_Year'),
+        "motivational_score": safe_get_numeric('Leadership_Score'),
         "eq_score": safe_get_numeric('EQ'),
         "strategic_vision": safe_get_numeric('Strategic_Vision'),
         "stakeholder_mgmt": safe_get_numeric('Stakeholder_Management'),
@@ -434,50 +376,188 @@ def get_ai_leadership_prediction(employee):
         "collaborate_purpose": safe_get_numeric('Collaborate_Purpose'),
         "innovate_change": safe_get_numeric('Innovate_Change'),
         "adaptability": safe_get_numeric('Adaptability'),
-        "coaching_skill": safe_get_numeric('Coaching_Skill')
+        "coaching_skill": safe_get_numeric('Coaching_Skill'),
+        "tech_fluency": safe_get_numeric('Tech_Fluency')
     }
     
-    prompt = f"""Analyze this employee's leadership potential. You must make a clear determination - High, Medium, or Low.
+    prompt = f"""You are an experienced HR leadership assessor at a pharmaceutical company. Evaluate this employee's leadership potential using HOLISTIC JUDGMENT based on our Path to 2035 framework.
+
+LEADERSHIP FRAMEWORK (Path to 2035):
+
+Core Behaviors:
+1. Decide and act with speed - Agile decision-making, quick action
+2. Communicate with candor - Honest communication, receptive to feedback
+3. Collaborate with purpose - Cross-functional teamwork, stakeholder management
+4. Innovate and drive change - Creative thinking, continuous improvement
+5. Deliver to win - Results orientation, accountability
+
+Key Competencies:
+- Strategic vision & adaptability
+- Emotional intelligence & empathy
+- Change leadership & organizational agility
+- Stakeholder management & communication
+- Digital fluency & tech-enabled innovation
+- People development & coaching
+- Cross-cultural competence
+
+HOLISTIC ASSESSMENT APPROACH:
+
+Consider the WHOLE person, not just scores. Look for:
+- **Trajectory & Growth**: Is this person improving? Do they seek challenges and learn from them?
+- **Impact & Influence**: Have they made a difference beyond their job description? Do others seek their input?
+- **Potential vs. Current State**: Could they excel with the right development? What's their ceiling?
+- **Context Matters**: A high performer in a small team may have different potential than someone managing large groups
+- **Behavioral Patterns**: Do their scores reflect consistent behavior or isolated incidents?
+- **Hidden Strengths**: Look for underutilized talents - maybe high EQ but not managing people yet, or strong tech fluency in a non-technical role
+
+Score Interpretation Guide (Use as context, NOT rigid rules):
+- Strong indicators: Performance 4.0+, key competencies 4.0+, manages people, demonstrates behaviors
+- Development indicators: Performance 3.5-4.5, mixed competencies 3.0-4.0, showing growth
+- Foundation-building indicators: Performance <3.5, competencies <3.0, early career, learning mindset
+
+CRITICAL: Scores are DATA POINTS, not decisions. A person with 3.8 performance but exceptional EQ and growth mindset may have higher potential than someone with 4.2 performance but limited adaptability.
 
 Employee Profile:
 {json.dumps(employee_info, indent=2)}
 
-Context: On a 1-5 scale, typical organizational distributions are:
-- Scores 4.0-5.0 = Top 20-30% (exceptional)
-- Scores 3.0-3.9 = Middle 40-50% (solid performers)  
-- Scores 1.0-2.9 = Bottom 20-30% (needs development)
+Analyze this employee like a seasoned HR professional would:
+- What story do the data points tell about their journey?
+- Where do you see untapped potential or hidden strengths?
+- What combination of factors suggests their leadership ceiling?
+- How do their behaviors and competencies work together (or against each other)?
+- What's your GUT feeling about their leadership trajectory?
 
-Your task: Assess this specific individual's readiness for expanded leadership roles.
+Be thoughtful but NOT cautious - make a clear assessment based on the full picture. Aim for realistic distribution: ~15% High, ~60% Medium, ~25% Low.
 
-HIGH Leadership Potential means:
-- Multiple leadership scores at 4.0+ showing exceptional capability
-- Strong people management track record (manages 3+ people) with high performance
-- Clear evidence of strategic thinking and stakeholder influence
-- Ready NOW for senior leadership roles
+You MUST respond in EXACTLY this format:
 
-LOW Leadership Potential means:
-- Most leadership scores below 3.0 showing significant gaps
-- No people management experience AND weak performance (<3.5)
-- Limited evidence of leadership behaviors or readiness
-- Needs 2+ years of foundational development before leadership roles
+Leadership Potential: [High/Medium/Low]
 
-MEDIUM Leadership Potential means:
-- Mixed profile with some strengths and some gaps
-- OR solid scores (3.0-3.9) but limited proven track record
-- Shows promise but needs 6-18 months targeted development
-- Not ready for immediate promotion but has potential
+**Key Observations:**
 
-Be decisive. Look at the actual numbers. Don't default to Medium unless the profile truly is mixed.
+1. Performance Track Record
+[Tell the story: What do their performance, tenure, and leadership scope reveal? Look for patterns and trajectory, not just numbers.]
 
-You MUST respond in EXACTLY this format with no other text:
-Leadership Potential: High
-Reasoning: Strong leadership scores (Leadership 4.2, EQ 4.0, Strategic Vision 4.3) combined with management of 5 people and performance rating of 4.5 indicates exceptional leadership capability and readiness for senior roles.
+2. Behavioral Alignment (Path to 2035)
+[Assess how they embody each of the 5 core behaviors. Look at scores but also consider context - are they growing? Do behaviors complement each other? Use ✓ for clear strengths, ○ for developing areas, ~ for mixed signals.]
+
+3. Development Readiness & Potential
+[This is KEY: Beyond current state, what's their ceiling? Consider growth mindset, learning agility, impact potential, and hidden strengths. What makes them stand out or hold back?]
+
+4. Holistic Assessment & Recommendation
+[Synthesize everything: What's your professional judgment? Why this rating? What's the development priority? Consider the full context.]
+
+
+**Conclusion:**
+
+[2-3 sentences summarizing your holistic view of their leadership potential, readiness timeline, and what would unlock their next level]
+
+IMPORTANT: Ensure there is a blank line before the **Conclusion:** section for proper formatting.
+
+Keep response under 350 words. Be insightful, nuanced, and human in your assessment.
 
 Now analyze and respond:"""
     
     return call_llm_api(prompt)
 
-def get_hrbp_leadership_insights(employee, ai_potential):
+def create_progress_bar_chart(prediction_category):
+    """Create progress bar visualization for leadership score"""
+    
+    # Gray color for non-predicted zones
+    gray_color = 'rgba(209, 213, 219, 0.5)'
+    
+    # Determine which zone to highlight
+    if prediction_category == "High":
+        low_color = gray_color
+        medium_color = gray_color
+        high_color = '#00E47C'
+    elif prediction_category == "Medium":
+        low_color = gray_color
+        medium_color = '#f39c12'
+        high_color = gray_color
+    else:
+        low_color = '#e74c3c'
+        medium_color = gray_color
+        high_color = gray_color
+    
+    fig = go.Figure()
+    
+    fig.add_trace(go.Bar(
+        x=[33.33],
+        y=[''],
+        orientation='h',
+        marker=dict(color=low_color),
+        showlegend=False,
+        hoverinfo='skip'
+    ))
+    
+    fig.add_trace(go.Bar(
+        x=[33.33],
+        y=[''],
+        orientation='h',
+        marker=dict(color=medium_color),
+        showlegend=False,
+        hoverinfo='skip',
+        base=33.33
+    ))
+    
+    fig.add_trace(go.Bar(
+        x=[33.34],
+        y=[''],
+        orientation='h',
+        marker=dict(color=high_color),
+        showlegend=False,
+        hoverinfo='skip',
+        base=66.66
+    ))
+    
+    fig.update_layout(
+        height=80,
+        margin=dict(l=10, r=10, t=30, b=5),
+        xaxis=dict(
+            range=[0, 100],
+            showgrid=False,
+            zeroline=False,
+            showticklabels=False,
+            fixedrange=True
+        ),
+        yaxis=dict(
+            showgrid=False,
+            zeroline=False,
+            showticklabels=False,
+            fixedrange=True
+        ),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        barmode='stack',
+        bargap=0
+    )
+    
+    fig.add_annotation(
+        x=16.5, y=1.4,
+        text="Low",
+        showarrow=False,
+        font=dict(size=11, color="#6b7280", family="Arial"),
+        yref='y'
+    )
+    fig.add_annotation(
+        x=50, y=1.4,
+        text="Medium",
+        showarrow=False,
+        font=dict(size=11, color="#6b7280", family="Arial"),
+        yref='y'
+    )
+    fig.add_annotation(
+        x=83.5, y=1.4,
+        text="High",
+        showarrow=False,
+        font=dict(size=11, color="#6b7280", family="Arial"),
+        yref='y'
+    )
+    
+    return fig
+
+def get_hrbp_leadership_insights(employee, prediction_category):
     def safe_get_numeric(key, default=0):
         if key in employee.index and pd.notna(employee[key]):
             return float(employee[key])
@@ -492,54 +572,69 @@ def get_hrbp_leadership_insights(employee, ai_potential):
         "name": safe_get_string('Name'),
         "department": safe_get_string('Department'),
         "designation": safe_get_string('Designation'),
-        "leadership_potential": ai_potential,
+        "leadership_potential": prediction_category,
         "performance_rating": safe_get_numeric('AveragePerformanceRating'),
-        "people_managed": safe_get_numeric('People_Managed')
+        "people_managed": safe_get_numeric('People_Managed'),
+        "tenure": safe_get_numeric('Tenure')
     }
     
     hrbp_guide = """
-High Leadership Potential HRBP Actions:
-- Nominate for high-visibility leadership development programs and executive coaching
-- Create stretch assignments and cross-functional project leadership opportunities
-- Facilitate mentoring relationships with senior executives
-- Support succession planning discussions and leadership pipeline development
+HRBP Development Framework (70-20-10 Model + Path to 2035):
 
-Medium Leadership Potential HRBP Actions:
-- Enroll in targeted leadership development courses and skill-building workshops
-- Arrange job rotation opportunities and lateral moves for exposure
-- Provide access to internal mentoring programs and leadership circles
-- Support manager in creating individual development plans
+High Leadership Potential Actions:
+- Nominate for high-visibility leadership programs (e.g., ALDP) and executive coaching
+- Design stretch assignments: cross-functional project leadership, strategic initiatives, innovation challenges
+- Facilitate executive mentoring AND reverse mentoring (digital skills from younger talent)
+- Support succession planning and leadership pipeline discussions
+- Arrange cross-functional/cross-regional rotations for broader exposure
+- Enroll in digital leadership programs (AI, data analytics, tech-enabled innovation)
+- Include in Leadership Labs/simulations for decision-making under pressure
+- Sponsor attendance at external pharma leadership forums and industry conferences
 
-Low Leadership Potential HRBP Actions:
-- Assess foundational leadership competencies and create development roadmap
-- Provide access to basic leadership training and communication skills workshops
-- Support first-time people management opportunities
-- Facilitate coaching on emotional intelligence and self-awareness
+Medium Leadership Potential Actions:
+- Enroll in targeted competency development: change leadership, strategic thinking, digital fluency
+- Arrange lateral moves or job rotations for skill-building
+- Provide access to internal mentoring programs and peer learning circles
+- Support manager in creating 70-20-10 development plans with stretch projects
+- Focus on closing specific gaps: EQ development, stakeholder management, innovation mindset
+- Leverage LinkedIn Learning/Coursera for targeted skills (data literacy, communication)
+- Include in cross-departmental task forces and innovation challenges
+- Implement 360-degree feedback for self-awareness and development planning
+
+Low Leadership Potential Actions:
+- Assess foundational competencies and create multi-year development roadmap
+- Provide basic leadership training: first-time manager programs, communication workshops
+- Support small-scale leadership opportunities: team lead roles, project coordination
+- Focus on core behaviors: decide with speed, collaborate with purpose, deliver to win
+- Facilitate coaching on EQ, adaptability, and self-awareness
+- Assign mentors for guided development and skill-building
+- Encourage participation in skills training: technical depth, digital basics, stakeholder engagement
+- Set clear milestones and regular check-ins to track progress
 """
     
-    prompt = f"""You are an HRBP providing strategic leadership development action items. Based on the employee profile and HRBP guide below, provide your response in the following format:
-
-(2-3 sentences summarizing the employee's leadership potential and development priority)
+    prompt = f"""You are an HRBP providing strategic leadership development action items. Based on the employee profile and development framework, provide ONLY specific recommendations in the following format:
 
 **Recommendations:**
- [Specific action item 1]
- [Specific action item 2]
- [Specific action item 3]
- [Specific action item 4]
- [Specific action item 5]
+- [Specific action item 1 - be concrete and actionable]
+- [Specific action item 2 - reference specific programs or approaches]
+- [Specific action item 3 - tied to their specific gaps/strengths]
+- [Specific action item 4 - practical next steps]
+- [Specific action item 5 - measurable development action]
 
 Employee Profile:
 {json.dumps(employee_info, indent=2)}
 
-HRBP Guide:
+HRBP Development Framework:
 {hrbp_guide}
 
-Focus on leadership potential level ({ai_potential}). Be specific and data-driven. Keep total response under 200 words.
+Focus on leadership potential level ({prediction_category}). Reference the 70-20-10 model, stretch assignments, rotations, mentoring as appropriate. Be specific, data-driven, and actionable. NO summary introduction - start directly with **Recommendations:**.
+
+Keep under 150 words total.
 """
     
     return call_llm_api(prompt)
 
-def get_manager_leadership_insights(employee, ai_potential):
+def get_manager_leadership_insights(employee, prediction_category):
     def safe_get_numeric(key, default=0):
         if key in employee.index and pd.notna(employee[key]):
             return float(employee[key])
@@ -554,49 +649,64 @@ def get_manager_leadership_insights(employee, ai_potential):
         "name": safe_get_string('Name'),
         "department": safe_get_string('Department'),
         "designation": safe_get_string('Designation'),
-        "leadership_potential": ai_potential,
+        "leadership_potential": prediction_category,
         "performance_rating": safe_get_numeric('AveragePerformanceRating'),
-        "people_managed": safe_get_numeric('People_Managed')
+        "people_managed": safe_get_numeric('People_Managed'),
+        "tenure": safe_get_numeric('Tenure')
     }
     
     manager_guide = """
-High Leadership Potential Manager Actions:
-- Provide challenging stretch assignments with increased scope
-- Delegate high-visibility projects and cross-functional leadership opportunities
-- Schedule regular leadership development conversations using GROW model
-- Create opportunities to present to senior leadership
+Manager Development Framework (Practical Actions):
 
-Medium Leadership Potential Manager Actions:
-- Assign team lead responsibilities for specific projects
-- Provide opportunities to mentor junior team members
-- Schedule monthly one-on-ones focused on leadership skill development
-- Encourage participation in cross-departmental committees
+High Leadership Potential Actions:
+- Delegate high-visibility strategic projects with increased scope and autonomy
+- Create opportunities to lead cross-functional initiatives and innovation challenges
+- Provide regular leadership coaching using GROW model and behavior-based feedback
+- Enable presentations to senior leadership and key stakeholders
+- Empower with decision-making authority on strategic priorities
+- Facilitate exposure to digital tools (AI, analytics) in daily work
+- Encourage leading change initiatives and organizational improvements
+- Support attendance at industry events and external learning opportunities
 
-Low Leadership Potential Manager Actions:
-- Focus on building foundational leadership competencies
-- Provide small-scale leadership opportunities like leading team meetings
-- Offer regular coaching on communication and decision-making
-- Support basic management and supervisory skills training
+Medium Leadership Potential Actions:
+- Assign team lead roles on specific projects or work streams
+- Provide mentoring opportunities with junior team members
+- Conduct focused one-on-ones on leadership skill development (monthly)
+- Encourage participation in cross-departmental committees or task forces
+- Give targeted feedback and coaching on specific competency gaps
+- Support skill-building: data literacy, stakeholder management, strategic thinking
+- Create safe opportunities to practice decision-making and problem-solving
+- Sponsor participation in relevant training programs and workshops
+
+Low Leadership Potential Actions:
+- Focus on building foundational leadership competencies and core behaviors
+- Provide small-scale leadership opportunities: leading team meetings, project coordination
+- Offer regular coaching on communication, collaboration, and delivering results
+- Support basic management training and supervisory skills development
+- Work on developing growth mindset and openness to feedback
+- Assign clear, achievable goals with regular check-ins and support
+- Encourage participation in lunch & learns and peer learning sessions
+- Build confidence through incremental responsibility and positive reinforcement
 """
     
-    prompt = f"""You are a Manager receiving strategic leadership development action items for your direct report. Based on the employee profile and manager guide below, provide your response in the following format:
-
-(2-3 sentences summarizing the employee's leadership potential and development priority)
+    prompt = f"""You are a Manager receiving guidance on developing your direct report's leadership potential. Based on the profile and development framework, provide ONLY specific recommendations:
 
 **Recommendations:**
- [Specific action item 1]
- [Specific action item 2]
- [Specific action item 3]
- [Specific action item 4]
- [Specific action item 5]
+- [Specific action item 1 - practical and implementable]
+- [Specific action item 2 - tied to daily work]
+- [Specific action item 3 - coaching or mentoring approach]
+- [Specific action item 4 - stretch opportunity or delegation]
+- [Specific action item 5 - skill-building activity]
 
 Employee Profile:
 {json.dumps(employee_info, indent=2)}
 
-Manager Guide:
+Manager Development Framework:
 {manager_guide}
 
-Focus on leadership potential level ({ai_potential}). Be specific and practical. Keep total response under 200 words.
+Focus on leadership potential level ({prediction_category}). Be specific, practical, and action-oriented. NO summary introduction - start directly with **Recommendations:**.
+
+Keep under 150 words total.
 """
     
     return call_llm_api(prompt)
@@ -686,25 +796,17 @@ def main():
     
     with st.sidebar:
         st.text(' ')
-        #st.text(' ')
         st.image("BI-Logo.png", width=125)
         st.text(' ')
         st.text(' ')
         
-        #st.markdown("---")
-        
         if st.button("🏠 Back to Home", key="home_btn", use_container_width=True):
             st.switch_page("Home.py")
-        
-        #st.markdown("---")
         
         st.markdown("### Filters")
         
         departments = ["All"] + sorted([dept for dept in data['Department'].unique() if dept != 'Unknown'])
         selected_dept = st.selectbox("Department", departments)
-        
-        experience_levels = ["All", "Junior (0-5 years)", "Mid-level (6-15 years)", "Senior (16+ years)"]
-        selected_experience = st.selectbox("Experience Level", experience_levels)
         
         education_levels = ["All"] + sorted([edu for edu in data['Education'].unique() if edu != 'Unknown'])
         selected_education = st.selectbox("Education Level", education_levels)
@@ -712,14 +814,6 @@ def main():
     filtered_data = data.copy()
     if selected_dept != "All":
         filtered_data = filtered_data[filtered_data['Department'] == selected_dept]
-    
-    if selected_experience != "All":
-        if selected_experience == "Junior (0-5 years)":
-            filtered_data = filtered_data[filtered_data['Years_Working'] <= 5]
-        elif selected_experience == "Mid-level (6-15 years)":
-            filtered_data = filtered_data[(filtered_data['Years_Working'] > 5) & (filtered_data['Years_Working'] <= 15)]
-        elif selected_experience == "Senior (16+ years)":
-            filtered_data = filtered_data[filtered_data['Years_Working'] > 15]
     
     if selected_education != "All":
         filtered_data = filtered_data[filtered_data['Education'] == selected_education]
@@ -740,10 +834,8 @@ def main():
     elif st.session_state.last_employee_id != current_employee_id:
         st.session_state.last_employee_id = current_employee_id
         st.session_state.ai_prediction_done = False
-        if 'ai_leadership_potential' in st.session_state:
-            del st.session_state.ai_leadership_potential
-        if 'ai_reasoning' in st.session_state:
-            del st.session_state.ai_reasoning
+        if 'leadership_score_100' in st.session_state:
+            del st.session_state.leadership_score_100
     
     col1, col2 = st.columns([4, 6])
     
@@ -782,7 +874,9 @@ def main():
             ("People Managed", f"{employee_data['People_Managed']:.0f}" if pd.notna(employee_data['People_Managed']) else "0"),
             ("Years Working", f"{employee_data['Years_Working']:.0f}" if pd.notna(employee_data['Years_Working']) else "N/A"),
             ("Training Hours", f"{employee_data['TrainingHours']:.0f}" if pd.notna(employee_data['TrainingHours']) else "N/A"),
-            ("Project Count", f"{employee_data['ProjectCount']:.0f}" if pd.notna(employee_data['ProjectCount']) else "N/A")
+            ("Project Count", f"{employee_data['ProjectCount']:.0f}" if pd.notna(employee_data['ProjectCount']) else "N/A"),
+            ("MAG Current Year", str(employee_data['MAG_Current_Year'])),
+            ("MAG Last Year", str(employee_data['MAG_Last_Year']))
         ]
         
         for label, value in performance_fields:
@@ -799,12 +893,13 @@ def main():
             return "N/A"
         
         leadership_fields = [
-            ("Leadership Score", safe_display_value(employee_data, 'Leadership_Score')),
+            ("Motivational Score", safe_display_value(employee_data, 'Leadership_Score')),
             ("EQ (Emotional Intelligence)", safe_display_value(employee_data, 'EQ')),
             ("Strategic Vision", safe_display_value(employee_data, 'Strategic_Vision')),
             ("Stakeholder Management", safe_display_value(employee_data, 'Stakeholder_Management')),
             ("Coaching Skill", safe_display_value(employee_data, 'Coaching_Skill')),
-            ("Adaptability", safe_display_value(employee_data, 'Adaptability'))
+            ("Adaptability", safe_display_value(employee_data, 'Adaptability')),
+            ("Tech Fluency", safe_display_value(employee_data, 'Tech_Fluency'))
         ]
         
         for label, value in leadership_fields:
@@ -836,7 +931,7 @@ def main():
             st.session_state.ai_prediction_done = False
         
         if st.button("Generate AI Prediction", key="ai_predict_btn"):
-            with st.spinner("Generating AI leadership potential prediction..."):
+            with st.spinner("Generating AI leadership assessment..."):
                 ai_prediction_raw = get_ai_leadership_prediction(employee_data)
             
             try:
@@ -846,16 +941,18 @@ def main():
                 else:
                     lines = ai_prediction_raw.strip().split('\n')
                     ai_leadership_potential = None
-                    ai_reasoning = ""
+                    ai_reasoning = []
                     
                     for line in lines:
-                        line = line.strip()
-                        if not line:
+                        line_stripped = line.strip()
+                        if not line_stripped:
                             continue
-                        if 'Leadership Potential:' in line:
-                            ai_leadership_potential = line.split(':', 1)[1].strip()
-                        elif 'Reasoning:' in line:
-                            ai_reasoning = line.split(':', 1)[1].strip()
+                        if 'Leadership Potential:' in line_stripped:
+                            ai_leadership_potential = line_stripped.split(':', 1)[1].strip()
+                        else:
+                            ai_reasoning.append(line_stripped)
+                    
+                    full_reasoning = '\n'.join(ai_reasoning) if ai_reasoning else "No detailed analysis provided"
                     
                     if ai_leadership_potential:
                         valid_levels = ['High', 'Medium', 'Low']
@@ -863,9 +960,17 @@ def main():
                             st.error(f"Invalid prediction value received: {ai_leadership_potential}")
                             st.session_state.ai_prediction_done = False
                         else:
-                            st.session_state.ai_leadership_potential = ai_leadership_potential
-                            st.session_state.ai_reasoning = ai_reasoning if ai_reasoning else "No reasoning provided"
+                            st.session_state.prediction_category = ai_leadership_potential
+                            st.session_state.prediction_description = full_reasoning
                             st.session_state.ai_prediction_done = True
+                            
+                            with st.spinner("Generating development recommendations..."):
+                                hrbp_actions = get_hrbp_leadership_insights(employee_data, ai_leadership_potential)
+                                st.session_state.hrbp_actions = hrbp_actions
+                                
+                                manager_actions = get_manager_leadership_insights(employee_data, ai_leadership_potential)
+                                st.session_state.manager_actions = manager_actions
+                            
                             st.rerun()
                     else:
                         st.error("Could not parse AI prediction. Please try again.")
@@ -877,49 +982,98 @@ def main():
                 st.session_state.ai_prediction_done = False
         
         if st.session_state.ai_prediction_done:
-            ai_leadership_potential = st.session_state.ai_leadership_potential
+            progress_fig = create_progress_bar_chart(st.session_state.prediction_category)
+            st.plotly_chart(progress_fig, use_container_width=True)
             
-            potential_color_class = {'Low': 'ai-potential-low', 'Medium': 'ai-potential-medium', 'High': 'ai-potential-high'}[ai_leadership_potential]
-            
-            st.markdown(f'<div class="profile-field"><div class="profile-label">AI Leadership Potential:</div><div class="profile-value"><span class="{potential_color_class}">{ai_leadership_potential}</span></div></div>', unsafe_allow_html=True)
-            
-            if ai_leadership_potential == "High":
-                matrix_desc = "Strong leadership candidate - ready for advanced development and succession planning"
-            elif ai_leadership_potential == "Medium":
-                matrix_desc = "Developing leader - focus on targeted skill building and leadership experiences"
+            if st.session_state.prediction_category == "High":
+                box_color = "#00E47C"
+            elif st.session_state.prediction_category == "Medium":
+                box_color = "#f39c12"
             else:
-                matrix_desc = "Early career leadership potential - needs foundational development and assessment"
+                box_color = "#e74c3c"
             
             st.markdown(f'''
-            <div class="ai-matrix-position-box">
-                <div class="ai-matrix-position-title">AI Assessment: {ai_leadership_potential} Leadership Potential</div>
-                <div class="ai-matrix-position-desc">{matrix_desc}</div>
+                <div style="
+                    background-color: rgba({int(box_color[1:3], 16)}, {int(box_color[3:5], 16)}, {int(box_color[5:7], 16)}, 0.1);
+                    border: 2px solid {box_color};
+                    border-radius: 8px;
+                    padding: 12px;
+                    margin: 10px 0;
+                    text-align: center;
+                ">
+                    <div style="font-weight: bold; font-size: 16px; color: {box_color};">
+                        Leadership Potential: {st.session_state.prediction_category}
+                    </div>
+                </div>
+            ''', unsafe_allow_html=True)
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            with st.expander("📋 Detailed Analysis", expanded=False):
+                formatted_description = st.session_state.prediction_description.replace(
+                    '**Conclusion:**', 
+                    '\n\n---\n\n**Conclusion:**'
+                )
+                st.markdown(formatted_description)
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            if st.session_state.prediction_category == "High":
+                border_color = "#00E47C"
+            elif st.session_state.prediction_category == "Medium":
+                border_color = "#f39c12"
+            else:
+                border_color = "#e74c3c"
+            
+            st.markdown(f'''
+            <div class="hrbp-actions-section" style="border-color: {border_color};">
+                <div class="hrbp-actions-header">HRBP Action Items</div>
             </div>
             ''', unsafe_allow_html=True)
             
-            st.markdown('</div>', unsafe_allow_html=True)
+            hrbp_content = st.session_state.hrbp_actions
+            if "**Recommendations:**" in hrbp_content:
+                hrbp_recommendations = hrbp_content.split("**Recommendations:**")[1].strip()
+            else:
+                hrbp_recommendations = hrbp_content
             
-            st.markdown('''
-            <div class="hrbp-actions-section">
-                <div class="hrbp-actions-header">HRBP Action Items</div>
-            ''', unsafe_allow_html=True)
+            hrbp_lines = hrbp_recommendations.split('\n')
+            hrbp_formatted = []
+            for line in hrbp_lines:
+                line = line.strip()
+                if line and not line.startswith('-') and not line.startswith('•'):
+                    if line[0].isdigit() and '.' in line[:3]:
+                        line = line.split('.', 1)[1].strip()
+                    hrbp_formatted.append(f"- {line}")
+                elif line:
+                    hrbp_formatted.append(line)
             
-            with st.spinner("Generating HRBP recommendations..."):
-                hrbp_actions = get_hrbp_leadership_insights(employee_data, ai_leadership_potential)
+            st.markdown('\n'.join(hrbp_formatted))
             
-            st.markdown(hrbp_actions)
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            st.markdown('''
-            <div class="manager-actions-section">
+            st.markdown(f'''
+            <div class="manager-actions-section" style="border-color: {border_color};">
                 <div class="manager-actions-header">Manager Action Items</div>
+            </div>
             ''', unsafe_allow_html=True)
             
-            with st.spinner("Generating Manager recommendations..."):
-                manager_actions = get_manager_leadership_insights(employee_data, ai_leadership_potential)
+            manager_content = st.session_state.manager_actions
+            if "**Recommendations:**" in manager_content:
+                manager_recommendations = manager_content.split("**Recommendations:**")[1].strip()
+            else:
+                manager_recommendations = manager_content
             
-            st.markdown(manager_actions)
-            st.markdown('</div>', unsafe_allow_html=True)
+            manager_lines = manager_recommendations.split('\n')
+            manager_formatted = []
+            for line in manager_lines:
+                line = line.strip()
+                if line and not line.startswith('-') and not line.startswith('•'):
+                    if line[0].isdigit() and '.' in line[:3]:
+                        line = line.split('.', 1)[1].strip()
+                    manager_formatted.append(f"- {line}")
+                elif line:
+                    manager_formatted.append(line)
+            
+            st.markdown('\n'.join(manager_formatted))
 
 if __name__ == "__main__":
     main()
