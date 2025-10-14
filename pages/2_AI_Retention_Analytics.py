@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
-import requests
 import json
+import requests
 
 # Set page configuration
 st.set_page_config(
@@ -108,26 +108,7 @@ st.markdown("""
         border-radius: 12px;
         padding: 20px;
         margin: 20px 0;
-        position: relative;
-        box-shadow: 
-            0 4px 6px rgba(0, 228, 124, 0.15),
-            0 1px 3px rgba(0, 228, 124, 0.1);
-        background: linear-gradient(145deg, #f8fffe 0%, #f0fffb 100%);
-    }
-    .hrbp-actions-section::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, #00E47C, #08312A, #00E47C);
-        border-radius: 10px 10px 0 0;
-        animation: ai-pulse 3s ease-in-out infinite;
-    }
-    @keyframes ai-pulse {
-        0%, 100% { opacity: 0.8; }
-        50% { opacity: 1; }
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
     .hrbp-actions-header {
         color: #08312A;
@@ -145,22 +126,7 @@ st.markdown("""
         border-radius: 12px;
         padding: 20px;
         margin: 20px 0;
-        position: relative;
-        box-shadow: 
-            0 4px 6px rgba(0, 228, 124, 0.15),
-            0 1px 3px rgba(0, 228, 124, 0.1);
-        background: linear-gradient(145deg, #f8fffe 0%, #f0fffb 100%);
-    }
-    .manager-actions-section::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, #00E47C, #08312A, #00E47C);
-        border-radius: 10px 10px 0 0;
-        animation: ai-pulse 3s ease-in-out infinite;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
     .manager-actions-header {
         color: #08312A;
@@ -228,11 +194,15 @@ st.markdown("""
 
 @st.cache_data
 def load_data():
+    # Load main employee data
     data = pd.read_excel("input/Employee_Dataset_SuccessFactors.xlsx")
     
+    # Load AI predictions
+    ai_predictions = pd.read_excel("input/Employee_AI_Predictions.xlsx")
+    
     column_mapping = {
-        'Retention Risk (High, Medium, Low)': 'Retention_Risk',
-        'Business Impact': 'Business_Impact',
+        'Retention Risk (High, Medium, Low)': 'Retention_Risk_Manager',
+        'Business Impact': 'Business_Impact_Manager',
         'English Proficency': 'English_Proficiency',
         '# of People Managed': 'People_Managed',
         'Past experiences': 'Past_Experiences',
@@ -242,6 +212,29 @@ def load_data():
     
     data = data.rename(columns=column_mapping)
     
+    # Rename AI prediction columns
+    ai_predictions = ai_predictions.rename(columns={
+        'AI_Retention_Risk': 'Retention_Risk_AI',
+        'AI_Business_Impact': 'Business_Impact_AI',
+        'AI_Retention_Reasoning': 'Retention_Reasoning_AI'
+    })
+    
+    # Ensure EmployeeID is string in both dataframes
+    data['EmployeeID'] = data['EmployeeID'].astype(str)
+    ai_predictions['EmployeeID'] = ai_predictions['EmployeeID'].astype(str)
+    
+    # Left join AI predictions
+    data = data.merge(
+        ai_predictions[['EmployeeID', 'Retention_Risk_AI', 'Business_Impact_AI', 'Retention_Reasoning_AI']], 
+        on='EmployeeID', 
+        how='left'
+    )
+    
+    # Fill missing values
+    data['Retention_Risk_AI'] = data['Retention_Risk_AI'].fillna('Unknown')
+    data['Business_Impact_AI'] = data['Business_Impact_AI'].fillna('Unknown')
+    data['Retention_Reasoning_AI'] = data['Retention_Reasoning_AI'].fillna('No reasoning available')
+    
     numeric_columns = ['Age', 'Tenure', 'AveragePerformanceRating', 'MonthsSincePromotion', 
                       'MonthlyIncome', 'People_Managed']
     
@@ -249,7 +242,8 @@ def load_data():
         if col in data.columns:
             data[col] = pd.to_numeric(data[col], errors='coerce')
     
-    categorical_columns = ['Retention_Risk', 'Business_Impact', 'Department', 'WorkLocation',
+    categorical_columns = ['Retention_Risk_AI', 'Business_Impact_AI', 'Retention_Risk_Manager', 
+                          'Business_Impact_Manager', 'Department', 'WorkLocation',
                           'English_Proficiency', 'Mobility', 'Availability', 'Education', 'Major',
                           'EmployeeID', 'Name', 'Designation', 'GeneralShift', 'Past_Experiences',
                           'MAG_Current_Year', 'MAG_Last_Year']
@@ -260,25 +254,25 @@ def load_data():
     
     return data
 
-try:
-    API_CONFIG = {
-        'client_id': st.secrets["client_id"],
-        'client_secret': st.secrets["client_secret"],
-        'model_name': st.secrets["model_name"],
-        'token_url': st.secrets["token_url"],
-        'api_url': st.secrets["api_url"],
-        'temperature': float(st.secrets["temperature"]),
-        'max_tokens': int(st.secrets["max_tokens"]),
-        'completions_path': st.secrets["completions_path"]
-    }
-except KeyError as e:
-    st.error(f"Missing secret configuration: {e}")
-    st.stop()
+# ========================================
+# BI Internal API Configuration
+# ========================================
 
-@st.cache_resource
-def get_api_token():
+API_CONFIG = {
+    'client_id': '074c933c-112f-4acf-a6a5-3199e4c78eea',
+    'client_secret': 'ff7c6a75-1336-4594-b74e-f26065b87d4e',
+    'model_name': 'gpt-4.1',
+    'token_url': 'https://api-gw.boehringer-ingelheim.com:443/api/oauth/token',
+    'api_url': 'https://api-gw.boehringer-ingelheim.com:443/apollo/llm-api/',
+    'temperature': 0.2,
+    'max_tokens': 1000,
+    'completions_path': 'chat/completions'
+}
+
+def get_access_token():
+    """Get OAuth2 access token for BI API"""
     try:
-        token_response = requests.post(
+        response = requests.post(
             API_CONFIG['token_url'],
             data={
                 'grant_type': 'client_credentials',
@@ -287,97 +281,61 @@ def get_api_token():
             },
             headers={'Content-Type': 'application/x-www-form-urlencoded'}
         )
-        token_response.raise_for_status()
-        return token_response.json()['access_token']
+        response.raise_for_status()
+        return response.json()['access_token']
     except Exception as e:
-        st.error(f"Failed to get API token: {str(e)}")
+        st.error(f"Failed to get access token: {str(e)}")
         return None
 
 def call_llm_api(prompt, max_retries=3):
-    token = get_api_token()
-    if not token:
-        return "Error: Unable to authenticate with API"
-    
-    url = f"{API_CONFIG['api_url']}{API_CONFIG['completions_path']}"
-    headers = {
-        'Authorization': f'Bearer {token}',
-        'Content-Type': 'application/json'
-    }
-    
-    payload = {
-        'model': API_CONFIG['model_name'],
-        'messages': [{'role': 'user', 'content': prompt}],
-        'temperature': API_CONFIG['temperature'],
-        'max_tokens': API_CONFIG['max_tokens']
-    }
-    
+    """Call BI Internal LLM API (GPT-4o)"""
     for attempt in range(max_retries):
         try:
-            response = requests.post(url, json=payload, headers=headers, timeout=30)
+            # Get access token
+            access_token = get_access_token()
+            if not access_token:
+                return "Error: Failed to authenticate with BI API"
+            
+            # Prepare request
+            url = f"{API_CONFIG['api_url']}{API_CONFIG['completions_path']}"
+            headers = {
+                'Authorization': f'Bearer {access_token}',
+                'Content-Type': 'application/json'
+            }
+            
+            payload = {
+                'model': API_CONFIG['model_name'],
+                'messages': [
+                    {
+                        'role': 'user',
+                        'content': prompt
+                    }
+                ],
+                'temperature': API_CONFIG['temperature'],
+                'max_tokens': API_CONFIG['max_tokens']
+            }
+            
+            # Make API call
+            response = requests.post(url, json=payload, headers=headers)
             response.raise_for_status()
             
+            # Parse response
             response_data = response.json()
             if 'choices' in response_data and len(response_data['choices']) > 0:
                 return response_data['choices'][0]['message']['content']
             else:
                 return "Error: Unexpected API response format"
+                
+        except requests.exceptions.RequestException as e:
+            if attempt == max_retries - 1:
+                return f"Error: {str(e)}"
+            continue
         except Exception as e:
             if attempt == max_retries - 1:
                 return f"Error: {str(e)}"
             continue
     
     return "Error: Failed to get response from API"
-
-def get_ai_risk_prediction(employee):
-    employee_info = {
-        "name": employee['Name'],
-        "id": employee['EmployeeID'],
-        "age": float(employee['Age']) if pd.notna(employee['Age']) else 0,
-        "tenure": float(employee['Tenure']) if pd.notna(employee['Tenure']) else 0,
-        "department": employee['Department'],
-        "designation": employee['Designation'],
-        "performance_rating": float(employee['AveragePerformanceRating']) if pd.notna(employee['AveragePerformanceRating']) else 0,
-        "months_since_promotion": float(employee['MonthsSincePromotion']) if pd.notna(employee['MonthsSincePromotion']) else 0,
-        "monthly_income": float(employee['MonthlyIncome']) if pd.notna(employee['MonthlyIncome']) else 0,
-        "people_managed": float(employee['People_Managed']) if pd.notna(employee['People_Managed']) else 0,
-        "work_location": employee['WorkLocation'],
-        "education": employee['Education'],
-        "english_proficiency": employee['English_Proficiency'],
-        "mobility": employee['Mobility'],
-        "mag_current": employee['MAG_Current_Year'],
-        "mag_last": employee['MAG_Last_Year']
-    }
-    
-    prompt = f"""You are an AI system that predicts employee retention risk and business impact. Analyze this employee profile and predict their retention risk and business impact.
-
-Employee Profile:
-{json.dumps(employee_info, indent=2)}
-
-Consider these factors:
-- Performance rating and career progression (promotions, tenure)
-- Role responsibilities and people management
-- Compensation relative to role and experience
-- Education, skills, and career development (MAG performance)
-- Work flexibility (location, mobility, availability)
-
-Classify Retention Risk:
-- High: Strong flight risk signals (low performance, long time since promotion, limited growth, low engagement indicators)
-- Medium: Mixed signals or moderate concerns
-- Low: Stable, engaged, growing in role
-
-Classify Business Impact:
-- High: Critical role, manages people, specialized skills, hard to replace
-- Medium: Important contributor, some specialized knowledge
-- Low: Easier to replace, junior role, standard skills
-
-You MUST respond in EXACTLY this format with no other text:
-Retention Risk: High
-Business Impact: Medium
-Reasoning: This employee shows signs of disengagement with below-average performance and limited career progression, but holds a critical role managing a team.
-
-Now analyze and respond:"""
-    
-    return call_llm_api(prompt)
 
 def get_hrbp_insights(employee, ai_risk, ai_impact):
     employee_info = {
@@ -414,16 +372,7 @@ Low Retention Risk HRBP Actions:
 """
     
     prompt = f"""
-You are an HRBP providing strategic action items for employee retention. Based on the employee profile and HRBP guide below, provide your response in the following format:
-
-(2-3 sentences summarizing the employee's situation and priority level)
-
-**Recommendations:**
- [Specific action item 1]
- [Specific action item 2]
- [Specific action item 3]
- [Specific action item 4]
- [Specific action item 5]
+You are an HRBP providing strategic action items for employee retention. Based on the employee profile and HRBP guide below, provide 5 specific action items as bullet points.
 
 Employee Profile:
 {json.dumps(employee_info, indent=2)}
@@ -431,7 +380,16 @@ Employee Profile:
 HRBP Guide:
 {hrbp_guide}
 
-Focus on the retention risk level ({ai_risk}) and business impact ({ai_impact}). Be specific and data-driven. Keep total response under 200 words.
+Focus on the retention risk level ({ai_risk}) and business impact ({ai_impact}). Provide ONLY bullet points, no summary or introduction. Be specific and data-driven.
+
+Format your response as:
+- [Specific action item 1]
+- [Specific action item 2]
+- [Specific action item 3]
+- [Specific action item 4]
+- [Specific action item 5]
+
+Keep total response under 150 words.
 """
     
     return call_llm_api(prompt)
@@ -470,16 +428,7 @@ Low Retention Risk Manager Actions:
 """
     
     prompt = f"""
-You are a Manager receiving guidance on retention actions for your direct report. Based on the employee profile and manager guide below, provide your response in the following format:
-
-(2-3 sentences summarizing the employee's situation)
-
-**Recommendations:**
- [Specific action item 1]
- [Specific action item 2]
- [Specific action item 3]
- [Specific action item 4]
- [Specific action item 5]
+You are a Manager receiving guidance on retention actions for your direct report. Based on the employee profile and manager guide below, provide 5 specific action items as bullet points.
 
 Employee Profile:
 {json.dumps(employee_info, indent=2)}
@@ -487,7 +436,16 @@ Employee Profile:
 Manager Guide:
 {manager_guide}
 
-Focus on the retention risk level ({ai_risk}) and business impact ({ai_impact}). Be specific and practical. Keep total response under 200 words.
+Focus on the retention risk level ({ai_risk}) and business impact ({ai_impact}). Provide ONLY bullet points, no summary or introduction. Be specific and practical.
+
+Format your response as:
+- [Specific action item 1]
+- [Specific action item 2]
+- [Specific action item 3]
+- [Specific action item 4]
+- [Specific action item 5]
+
+Keep total response under 150 words.
 """
     
     return call_llm_api(prompt)
@@ -498,7 +456,7 @@ def search_employee_with_filter(filtered_data, data):
     if 'last_search_option' not in st.session_state:
         st.session_state.last_search_option = search_option
     elif st.session_state.last_search_option != search_option:
-        st.session_state.ai_prediction_done = False
+        st.session_state.recommendations_generated = False
         st.session_state.last_search_option = search_option
     
     if search_option == "Employee Name":
@@ -577,36 +535,32 @@ def main():
     
     with st.sidebar:
         st.text(' ')
-        #st.text(' ')
         st.image("BI-Logo.png", width=125)
         st.text(' ')
         st.text(' ')
         
-        #st.markdown("---")
-        
         if st.button("🏠 Back to Home", key="home_btn", use_container_width=True):
             st.switch_page("Home.py")
-        
-        #st.markdown("---")
         
         st.markdown("### Filters")
         
         departments = ["All"] + sorted([dept for dept in data['Department'].unique() if dept != 'Unknown'])
         selected_dept = st.selectbox("Department", departments)
         
-        risk_levels = ["All"] + sorted([risk for risk in data['Retention_Risk'].unique() if risk != 'Unknown'])
-        selected_risk = st.selectbox("Risk Level", risk_levels)
+        # Filters based on AI predictions
+        risk_levels = ["All"] + sorted([risk for risk in data['Retention_Risk_AI'].unique() if risk != 'Unknown'])
+        selected_risk = st.selectbox("Risk Level (AI Predicted)", risk_levels)
         
-        impact_levels = ["All"] + sorted([impact for impact in data['Business_Impact'].unique() if impact != 'Unknown'])
-        selected_impact = st.selectbox("Business Impact", impact_levels)
+        impact_levels = ["All"] + sorted([impact for impact in data['Business_Impact_AI'].unique() if impact != 'Unknown'])
+        selected_impact = st.selectbox("Business Impact (AI Predicted)", impact_levels)
     
     filtered_data = data.copy()
     if selected_dept != "All":
         filtered_data = filtered_data[filtered_data['Department'] == selected_dept]
     if selected_risk != "All":
-        filtered_data = filtered_data[filtered_data['Retention_Risk'] == selected_risk]
+        filtered_data = filtered_data[filtered_data['Retention_Risk_AI'] == selected_risk]
     if selected_impact != "All":
-        filtered_data = filtered_data[filtered_data['Business_Impact'] == selected_impact]
+        filtered_data = filtered_data[filtered_data['Business_Impact_AI'] == selected_impact]
     
     st.markdown("<h6 style='text-align: center; color: black;'><font face='Verdana'>TalentLens AI</font></h6>",
     unsafe_allow_html=True)
@@ -622,16 +576,14 @@ def main():
     current_employee_id = str(employee_data['EmployeeID'])
     if 'last_employee_id' not in st.session_state:
         st.session_state.last_employee_id = current_employee_id
-        st.session_state.ai_prediction_done = False
+        st.session_state.recommendations_generated = False
     elif st.session_state.last_employee_id != current_employee_id:
         st.session_state.last_employee_id = current_employee_id
-        st.session_state.ai_prediction_done = False
-        if 'ai_risk_level' in st.session_state:
-            del st.session_state.ai_risk_level
-        if 'ai_business_impact' in st.session_state:
-            del st.session_state.ai_business_impact
-        if 'ai_reasoning' in st.session_state:
-            del st.session_state.ai_reasoning
+        st.session_state.recommendations_generated = False
+        if 'hrbp_actions' in st.session_state:
+            del st.session_state.hrbp_actions
+        if 'manager_actions' in st.session_state:
+            del st.session_state.manager_actions
     
     col1, col2 = st.columns([4, 6])
     
@@ -683,116 +635,99 @@ def main():
         st.markdown('<div class="profile-header">Retention Analysis</div>', unsafe_allow_html=True)
         
         st.markdown('<div class="profile-header">Manager\'s Feedback (from SAP SuccessFactors)</div>', unsafe_allow_html=True)
-        manager_risk = employee_data['Retention_Risk']
-        manager_impact = employee_data['Business_Impact']
-        manager_risk_color = {'Low': 'low-risk', 'Medium': 'medium-risk', 'High': 'high-risk'}[manager_risk]
-        manager_impact_color = {'Low': 'low-risk', 'Medium': 'medium-risk', 'High': 'high-risk'}[manager_impact]
+        manager_risk = employee_data['Retention_Risk_Manager']
+        manager_impact = employee_data['Business_Impact_Manager']
+        manager_risk_color = {'Low': 'low-risk', 'Medium': 'medium-risk', 'High': 'high-risk'}.get(manager_risk, '')
+        manager_impact_color = {'Low': 'low-risk', 'Medium': 'medium-risk', 'High': 'high-risk'}.get(manager_impact, '')
         
         st.markdown(f'<div class="profile-field"><div class="profile-label">Retention Risk:</div><div class="profile-value"><span class="{manager_risk_color}">{manager_risk}</span></div></div>', unsafe_allow_html=True)
         st.markdown(f'<div class="profile-field"><div class="profile-label">Business Impact:</div><div class="profile-value"><span class="{manager_impact_color}">{manager_impact}</span></div></div>', unsafe_allow_html=True)
         
         st.markdown(' ', unsafe_allow_html=True)
         
+        # AI Prediction Section
         st.markdown('<div class="profile-header">AI Prediction</div>', unsafe_allow_html=True)
         
-        if 'ai_prediction_done' not in st.session_state:
-            st.session_state.ai_prediction_done = False
+        ai_risk_level = employee_data['Retention_Risk_AI']
+        ai_business_impact = employee_data['Business_Impact_AI']
         
-        if st.button("Generate AI Prediction", key="ai_predict_btn"):
-            with st.spinner("Generating AI risk prediction..."):
-                ai_prediction_raw = get_ai_risk_prediction(employee_data)
-            
-            try:
-                if ai_prediction_raw.startswith("Error:"):
-                    st.error(ai_prediction_raw)
-                    st.session_state.ai_prediction_done = False
-                else:
-                    lines = ai_prediction_raw.strip().split('\n')
-                    ai_risk_level = None
-                    ai_business_impact = None
-                    ai_reasoning = ""
-                    
-                    for line in lines:
-                        line = line.strip()
-                        if not line:
-                            continue
-                        if 'Retention Risk:' in line:
-                            ai_risk_level = line.split(':', 1)[1].strip()
-                        elif 'Business Impact:' in line:
-                            ai_business_impact = line.split(':', 1)[1].strip()
-                        elif 'Reasoning:' in line:
-                            ai_reasoning = line.split(':', 1)[1].strip()
-                    
-                    if ai_risk_level and ai_business_impact:
-                        valid_levels = ['High', 'Medium', 'Low']
-                        if ai_risk_level not in valid_levels or ai_business_impact not in valid_levels:
-                            st.error(f"Invalid prediction values received. Risk: {ai_risk_level}, Impact: {ai_business_impact}")
-                            st.session_state.ai_prediction_done = False
-                        else:
-                            st.session_state.ai_risk_level = ai_risk_level
-                            st.session_state.ai_business_impact = ai_business_impact
-                            st.session_state.ai_reasoning = ai_reasoning if ai_reasoning else "No reasoning provided"
-                            st.session_state.ai_prediction_done = True
-                            st.rerun()
-                    else:
-                        st.error(f"Could not parse AI prediction. Please try again.")
-                        st.write("Raw response:", ai_prediction_raw)
-                        st.session_state.ai_prediction_done = False
-            except Exception as e:
-                st.error(f"Error parsing AI response: {str(e)}")
-                st.write("Raw response:", ai_prediction_raw)
-                st.session_state.ai_prediction_done = False
+        risk_color_class = {'Low': 'ai-risk-low', 'Medium': 'ai-risk-medium', 'High': 'ai-risk-high'}.get(ai_risk_level, '')
+        impact_color_class = {'Low': 'ai-risk-low', 'Medium': 'ai-risk-medium', 'High': 'ai-risk-high'}.get(ai_business_impact, '')
         
-        if st.session_state.ai_prediction_done:
-            ai_risk_level = st.session_state.ai_risk_level
-            ai_business_impact = st.session_state.ai_business_impact
-            
-            risk_color_class = {'Low': 'ai-risk-low', 'Medium': 'ai-risk-medium', 'High': 'ai-risk-high'}[ai_risk_level]
-            impact_color_class = {'Low': 'ai-risk-low', 'Medium': 'ai-risk-medium', 'High': 'ai-risk-high'}[ai_business_impact]
-            
-            st.markdown(f'<div class="profile-field"><div class="profile-label">Retention Risk:</div><div class="profile-value"><span class="{risk_color_class}">{ai_risk_level}</span></div></div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="profile-field"><div class="profile-label">Business Impact:</div><div class="profile-value"><span class="{impact_color_class}">{ai_business_impact}</span></div></div>', unsafe_allow_html=True)
-            
-            matrix_position = f"{ai_risk_level} Risk + {ai_business_impact} Impact"
-            if ai_risk_level == "High" and ai_business_impact == "High":
-                matrix_desc = "Critical employee at high risk - immediate action required"
-            elif ai_risk_level == "Medium" and ai_business_impact == "Medium":
-                matrix_desc = "Moderate risk and impact - proactive engagement needed"
-            elif ai_risk_level == "Low" and ai_business_impact == "Low":
-                matrix_desc = "Stable employee - minimal disruption if departed"
+        st.markdown(f'<div class="profile-field"><div class="profile-label">Retention Risk:</div><div class="profile-value"><span class="{risk_color_class}">{ai_risk_level}</span></div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="profile-field"><div class="profile-label">Business Impact:</div><div class="profile-value"><span class="{impact_color_class}">{ai_business_impact}</span></div></div>', unsafe_allow_html=True)
+        
+        matrix_position = f"{ai_risk_level} Risk + {ai_business_impact} Impact"
+        if ai_risk_level == "High" and ai_business_impact == "High":
+            matrix_desc = "Critical employee at high risk - immediate action required"
+        elif ai_risk_level == "Medium" and ai_business_impact == "Medium":
+            matrix_desc = "Moderate risk and impact - proactive engagement needed"
+        elif ai_risk_level == "Low" and ai_business_impact == "Low":
+            matrix_desc = "Stable employee - minimal disruption if departed"
+        else:
+            matrix_desc = f"Mixed profile - {ai_risk_level.lower()} retention risk with {ai_business_impact.lower()} business impact"
+        
+        st.markdown(f'''
+        <div class="ai-matrix-position-box">
+            <div class="ai-matrix-position-title">AI Assessment: {matrix_position}</div>
+            <div class="ai-matrix-position-desc">{matrix_desc}</div>
+        </div>
+        ''', unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Add collapsible Summary section with AI Reasoning
+        with st.expander("📋 AI Generated Profile Summary", expanded=False):
+            ai_reasoning = employee_data['Retention_Reasoning_AI']
+            # Format reasoning for better readability
+            # Split by common sentence endings and add paragraph breaks
+            formatted_reasoning = ai_reasoning.replace('. ', '.\n\n')
+            st.markdown(formatted_reasoning)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Generate AI Recommendations Button
+        if 'recommendations_generated' not in st.session_state:
+            st.session_state.recommendations_generated = False
+        
+        if st.button("Generate Action Items for HRBP & Manager", key="ai_recommend_btn"):
+            with st.spinner("Generating HRBP and Manager recommendations..."):
+                hrbp_actions = get_hrbp_insights(employee_data, ai_risk_level, ai_business_impact)
+                st.session_state.hrbp_actions = hrbp_actions
+                
+                manager_actions = get_manager_insights(employee_data, ai_risk_level, ai_business_impact)
+                st.session_state.manager_actions = manager_actions
+                
+                st.session_state.recommendations_generated = True
+                st.rerun()
+        
+        # Display recommendations if generated
+        if st.session_state.recommendations_generated:
+            # Determine border color based on prediction
+            if ai_risk_level == "High":
+                border_color = "#e74c3c"
+            elif ai_risk_level == "Medium":
+                border_color = "#f39c12"
             else:
-                matrix_desc = f"Mixed profile - {ai_risk_level.lower()} retention risk with {ai_business_impact.lower()} business impact"
+                border_color = "#00E47C"
             
+            # Display HRBP actions
             st.markdown(f'''
-            <div class="ai-matrix-position-box">
-                <div class="ai-matrix-position-title">AI Assessment: {matrix_position}</div>
-                <div class="ai-matrix-position-desc">{matrix_desc}</div>
+            <div class="hrbp-actions-section" style="border-color: {border_color};">
+                <div class="hrbp-actions-header">HRBP Action Items</div>
             </div>
             ''', unsafe_allow_html=True)
             
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown(st.session_state.hrbp_actions)
             
-            st.markdown('''
-            <div class="hrbp-actions-section">
-                <div class="hrbp-actions-header">HRBP Action Items</div>
-            ''', unsafe_allow_html=True)
-            
-            with st.spinner("Generating HRBP recommendations..."):
-                hrbp_actions = get_hrbp_insights(employee_data, ai_risk_level, ai_business_impact)
-            
-            st.markdown(hrbp_actions)
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            st.markdown('''
-            <div class="manager-actions-section">
+            # Display Manager actions
+            st.markdown(f'''
+            <div class="manager-actions-section" style="border-color: {border_color};">
                 <div class="manager-actions-header">Manager Action Items</div>
+            </div>
             ''', unsafe_allow_html=True)
             
-            with st.spinner("Generating Manager recommendations..."):
-                manager_actions = get_manager_insights(employee_data, ai_risk_level, ai_business_impact)
-            
-            st.markdown(manager_actions)
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown(st.session_state.manager_actions)
 
 if __name__ == "__main__":
-    main()                    
+    main()
