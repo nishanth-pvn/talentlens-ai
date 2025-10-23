@@ -207,19 +207,6 @@ def main():
     
     with col2:
         st.markdown('<div style="text-align: center;"><span class="ai-badge">AI</span></div>', unsafe_allow_html=True)
-        st.markdown('<div class="card-icon">🎯</div>', unsafe_allow_html=True)
-        st.markdown('<div class="card-title">Retention Risk Prediction</div>', unsafe_allow_html=True)
-        st.text(' ')
-        st.markdown('<div class="card-description">AI-enabled retention risk assessment with personalized HRBP and Manager action items for targeted interventions</div>', unsafe_allow_html=True)
-        
-        # Center the button
-        btn_col1, btn_col2, btn_col3 = st.columns([0.2, 2, 0.2])
-        with btn_col2:
-            if st.button("Analyze Retention Risk", key="retention_btn", use_container_width=True):
-                st.switch_page("pages/2_AI_Retention_Analytics.py")
-    
-    with col3:
-        st.markdown('<div style="text-align: center;"><span class="ai-badge">AI</span></div>', unsafe_allow_html=True)
         st.markdown('<div class="card-icon">👥</div>', unsafe_allow_html=True)
         st.markdown('<div class="card-title">Leadership Prediction</div>', unsafe_allow_html=True)
         st.text(' ')
@@ -230,6 +217,19 @@ def main():
         with btn_col2:
             if st.button("Assess Leadership Potential", key="leadership_btn", use_container_width=True):
                 st.switch_page("pages/3_AI_Leadership_Prediction.py")
+
+    with col3:
+        st.markdown('<div style="text-align: center;"><span class="ai-badge">AI</span></div>', unsafe_allow_html=True)
+        st.markdown('<div class="card-icon">🎯</div>', unsafe_allow_html=True)
+        st.markdown('<div class="card-title">Retention Risk Prediction</div>', unsafe_allow_html=True)
+        st.text(' ')
+        st.markdown('<div class="card-description">AI-enabled retention risk assessment with personalized HRBP and Manager action items for targeted interventions</div>', unsafe_allow_html=True)
+        
+        # Center the button
+        btn_col1, btn_col2, btn_col3 = st.columns([0.2, 2, 0.2])
+        with btn_col2:
+            if st.button("Analyze Retention Risk", key="retention_btn", use_container_width=True):
+                st.switch_page("pages/2_AI_Retention_Analytics.py")
 
 if __name__ == "__main__":
     main()
